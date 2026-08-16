@@ -71,6 +71,21 @@ stylesheet had rules for them but the code was never written. All three are now 
   end-of-game message. Where more than one is recorded the app **picks a different one each time**,
   so a child doesn't hear the same clip forty times in a row. Recording auto-stops after 8 seconds.
 
+### Question voice: male or female, and getting rid of the robot
+Grown-ups → Question voice now offers **Female / Male / Either**, a list of every English voice on the
+device, and a Test button that speaks a real question so you can compare them. The choice is remembered.
+
+Voices are ranked by quality first (names containing *Enhanced*, *Premium*, *Natural*, *Neural*,
+*Siri*, *Google*), then British English, then the gender you asked for — gender is never overridden, so
+picking Male will take a non-British male voice over a British female one.
+
+**The app can only use voices already installed on the device**, and the ones an iPad ships with are the
+old flat-sounding ones. To fix that on the iPad: **Settings → Accessibility → Spoken Content → Voices →
+English**, download one marked **Enhanced** or **Premium**, then come back and pick it. This makes far
+more difference than anything in the app.
+
+A recorded clip always beats the computer voice, so the Voice studio remains the warmest option.
+
 ### Making it yours (and the other grandad's)
 - **The face on the home screen can be your own photo.** Grown-ups → Family setup → *Your picture*.
   `boepa-mascot.png` is a stock cartoon and stays as the fallback if no photo is set. Because it is

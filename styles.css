@@ -241,3 +241,8 @@ label.spaced{margin-top:22px}
 .mascot-controls{flex:1;min-width:0;display:flex;flex-direction:column;gap:9px}
 .mascot-controls input[type=file]{font-size:.95rem;padding:10px 12px}
 .boepa-mascot.is-photo{object-position:center 20%;border-radius:32px 32px 0 0}
+
+/* Voice help disclosure in Grown-ups */
+.voice-help{margin-top:12px;background:#f3f7fa;border-radius:16px;padding:12px 16px}
+.voice-help summary{font-weight:800;cursor:pointer}
+.voice-help p{font-size:.95rem;color:#4b5563;margin:10px 0 0}

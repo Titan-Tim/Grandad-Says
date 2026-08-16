@@ -12,7 +12,7 @@ const AUDIO_KEY  = 'gpl-audio-v1';
 const FAMILY_KEY = 'gpl-family-v1';
 const PREFS_KEY  = 'gpl-prefs-v1';
 const DEFAULT_DATA  = { grandName:'Boepa', grandPhoto:'', profiles:[], activeProfileId:null, progress:{} };
-const DEFAULT_PREFS = { soundOn:true, voiceURI:'', roundTarget:5 };
+const DEFAULT_PREFS = { soundOn:true, voiceURI:'', voiceGender:'female', roundTarget:5 };
 
 let data        = loadJSON(DB_KEY, DEFAULT_DATA);
 let prefs       = loadJSON(PREFS_KEY, DEFAULT_PREFS);
@@ -123,16 +123,46 @@ function refreshVoices(){
 refreshVoices();
 if('speechSynthesis' in window) window.speechSynthesis.addEventListener?.('voiceschanged', refreshVoices);
 
-// Warmest-sounding English voice we can find, unless a grown-up picked one.
-const NICE_VOICES = /serena|kate|sonia|libby|hazel|fiona|martha|amelie|stephanie|google uk english female|female/i;
-function chosenVoice(){
-  const v = Sound.voices;
+/* Voice choosing.
+   Device voices vary enormously — the old default ones (Daniel on iPad,
+   David/Zira on Windows) are the flat robotic ones. Rank by quality first,
+   then British English, then the requested gender. */
+const FEMALE_NAMES = /serena|kate|sonia|libby|hazel|fiona|martha|samantha|karen|moira|tessa|victoria|zira|susan|catherine|amelie|stephanie|allison|ava|joanna|salli|emma|amy|aria|jenny|michelle|clara|natasha|hayley|heather|priya|olivia|isla|freya|nora|maisie|elsie|neerja|yasmin|female|woman|\bwomen\b/i;
+const MALE_NAMES   = /daniel|arthur|oliver|george|james|ryan|thomas|\balex\b|fred|david|mark|\bguy\b|brian|liam|william|aaron|matthew|justin|joey|gordon|lee|male|\bman\b/i;
+// Words device makers use for their better, non-robotic voices.
+const HQ_NAMES     = /enhanced|premium|natural|neural|siri|google|online|multilingual/i;
+
+function voiceGender(v){
+  if(FEMALE_NAMES.test(v.name)) return 'female';
+  if(MALE_NAMES.test(v.name))   return 'male';
+  return '';
+}
+function englishVoices(){ return Sound.voices.filter(v=>/^en/i.test(v.lang)); }
+/** Higher is better. */
+function voiceScore(v, wantGender){
+  let s = 0;
+  if(HQ_NAMES.test(v.name))        s += 100;   // quality matters most
+  if(/en[-_]GB/i.test(v.lang))     s += 40;    // British, for British grandchildren
+  else if(/en[-_](IE|AU|NZ)/i.test(v.lang)) s += 20;
+  if(v.localService === false)     s += 10;    // network voices are usually the good ones
+  const g = voiceGender(v);
+  if(wantGender && g === wantGender) s += 60;
+  else if(wantGender && g && g !== wantGender) s -= 200;   // never pick the wrong gender
+  if(v.default)                    s += 2;
+  return s;
+}
+function bestVoice(wantGender){
+  const v = englishVoices();
   if(!v.length) return null;
-  if(prefs.voiceURI){ const saved = v.find(x=>x.voiceURI === prefs.voiceURI); if(saved) return saved; }
-  const gb = v.filter(x=>/en[-_]GB/i.test(x.lang));
-  return gb.find(x=>NICE_VOICES.test(x.name)) || gb[0]
-      || v.filter(x=>/^en/i.test(x.lang)).find(x=>NICE_VOICES.test(x.name))
-      || v.find(x=>/^en/i.test(x.lang)) || null;
+  return [...v].sort((a,b)=>voiceScore(b, wantGender) - voiceScore(a, wantGender))[0] || null;
+}
+function chosenVoice(){
+  if(!Sound.voices.length) return null;
+  if(prefs.voiceURI){
+    const saved = Sound.voices.find(x=>x.voiceURI === prefs.voiceURI);
+    if(saved) return saved;                 // an explicit pick always wins
+  }
+  return bestVoice(prefs.voiceGender || '');
 }
 
 function enqueue(makePromise, timeoutMs=12000){
@@ -858,15 +888,33 @@ function renderParent(){
         </div></div>
 
       <div class="card"><h2>Question voice</h2>
-        <p>The voice that asks the questions when no recording is available.</p>
+        <p>The voice that asks the questions when you haven't recorded one yourself.</p>
+
+        <div class="chip-row">
+          ${[['female','👩 Female'],['male','👨 Male'],['','Either']].map(([g,label])=>
+            `<button class="chip ${prefs.voiceGender===g?'on':''}" data-gender="${g}">${label}</button>`).join('')}
+        </div>
+
         <div class="voice-choice-row">
           <select id="voicePick">
             <option value="">Best available (recommended)</option>
-            ${voiceOptions.map(v=>`<option value="${esc(v.voiceURI)}"${prefs.voiceURI===v.voiceURI?' selected':''}>${esc(v.name)} — ${esc(v.lang)}</option>`).join('')}
+            ${voiceOptions.map(v=>`<option value="${esc(v.voiceURI)}"${prefs.voiceURI===v.voiceURI?' selected':''}>${esc(v.name)}${voiceGender(v)?` (${voiceGender(v)})`:''} — ${esc(v.lang)}${HQ_NAMES.test(v.name)?' ★':''}</option>`).join('')}
           </select>
-          <button class="secondary" id="testVoice">▶️ Test voice</button>
+          <button class="secondary" id="testVoice">▶️ Test</button>
         </div>
-        ${voiceOptions.length ? '' : '<p class="muted">No voices listed yet — reopen this page once and they should appear.</p>'}</div>
+        <p class="muted">Using: <b id="voiceNow">${esc(chosenVoice()?.name || 'device default')}</b>${voiceOptions.some(v=>HQ_NAMES.test(v.name))?' — ★ marks the better-quality voices.':''}</p>
+
+        <details class="voice-help">
+          <summary>The voice sounds robotic — how do I improve it?</summary>
+          <p>The app can only use the voices installed on the device, and the ones an iPad ships with are
+          the old flat-sounding ones. On the iPad open <b>Settings → Accessibility → Spoken Content →
+          Voices → English</b> and download a voice marked <b>Enhanced</b> or <b>Premium</b>
+          (for example Serena or Daniel). Come back here, tap <b>Test</b>, and pick it from the list.</p>
+          <p>For the warmest result, record the prompts in your own voice in the Voice studio — a recorded
+          line is always used in preference to the computer voice.</p>
+        </details>
+
+        ${voiceOptions.length ? '' : '<p class="muted">No voices listed yet — close and reopen the app once and they should appear.</p>'}</div>
 
       <div class="card"><h2>Our Family</h2><p>Add familiar people using a name, relationship and photo. Photos stay on this device and are shrunk automatically.</p>
         <button class="primary small" id="familySetup">👨‍👩‍👧‍👦 Manage family photos</button></div>
@@ -895,8 +943,20 @@ function renderParent(){
   $('#familySetup').onclick = ()=>{ state.screen='familySetup'; render(); };
   $('#saveGrand').onclick   = ()=>{ data.grandName = $('#grandNameEdit').value.trim() || 'Grandad'; saveData(); renderParent(); };
   $$('.chip[data-rounds]').forEach(b=>b.onclick = ()=>{ prefs.roundTarget = Number(b.dataset.rounds); savePrefs(); renderParent(); });
-  $('#voicePick').onchange  = e => { prefs.voiceURI = e.target.value; savePrefs(); };
-  $('#testVoice').onclick   = ()=>{ stopSpeech(); speak(`Hello ${p.name}. Can you find the red circle?`); };
+  const previewVoice = ()=>{ stopSpeech(); speak(`Hello ${p.name}. ${data.grandName} says, can you find the red circle?`); };
+  $$('.chip[data-gender]').forEach(b=>b.onclick = ()=>{
+    prefs.voiceGender = b.dataset.gender;
+    prefs.voiceURI = '';            // gender choice replaces any specific pick
+    savePrefs(); renderParent(); previewVoice();
+  });
+  $('#voicePick').onchange = e => {
+    prefs.voiceURI = e.target.value;
+    savePrefs();
+    const v = chosenVoice();
+    $('#voiceNow').textContent = v?.name || 'device default';
+    previewVoice();                 // hear each voice as you scroll through them
+  };
+  $('#testVoice').onclick = previewVoice;
   $('#grandPhoto').onchange = async e => {
     const file = e.target.files[0]; if(!file) return;
     const prev = data.grandPhoto;
