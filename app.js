@@ -218,8 +218,8 @@ function afterSpeech(nextFn, delay=300){
    device speech synthesis. */
 const PACK_ITEMS = ['red','blue','green','yellow','purple','orange','dog','cat','cow','duck','pig','sheep'];
 const PACK_VOICES = {
-  f: {label:'Ainsley (female)', dir:'voice/f/'},
-  m: {label:'Arthur (male)',    dir:'voice/m/'}
+  f: {label:'Tamsin (female)', dir:'voice/f/'},
+  m: {label:'Arthur (male)',   dir:'voice/m/'}
 };
 function packDir(){
   const v = PACK_VOICES[prefs.packVoice] || PACK_VOICES[prefs.voiceGender === 'male' ? 'm' : 'f'];
