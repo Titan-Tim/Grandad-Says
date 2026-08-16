@@ -1,17 +1,39 @@
 <!doctype html>
-<html lang="en">
+<html lang="en-GB">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
-  <meta name="theme-color" content="#fff8e7" />
+  <meta name="theme-color" content="#aee5ff" />
+  <meta name="description" content="Personal learning games for little ones, in Grandad's own voice." />
+  <!-- iPad Home Screen behaves like an app -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Play & Learn" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="icon-192.png" />
-  <title>Grandad's Play & Learn</title>
+  <link rel="icon" href="icon-192.png" />
+  <title>Grandad's Play &amp; Learn</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <main id="app"></main>
   <script src="app.js"></script>
-  <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));}</script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        // Was a worker already in charge? If so, a controller change means a NEW
+        // build took over, and we reload once so the child sees it straight away.
+        const hadController = !!navigator.serviceWorker.controller;
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (!hadController || refreshing) return;
+          refreshing = true;
+          location.reload();
+        });
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      });
+    }
+  </script>
 </body>
 </html>

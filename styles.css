@@ -158,3 +158,86 @@
 .adult-record.recording{background:#d73232;color:white;animation:pulse-record 1s infinite}
 .voice-note{background:#fff7d6;padding:10px 12px;border-radius:12px}
 @keyframes pulse-record{50%{transform:scale(1.03)}}
+
+
+/* ================= V5: motion, feedback and polish ================= */
+
+/* Answer states — instant visual reply to a tap */
+.option,.family-choice,.memory-card{transition:transform .14s ease,box-shadow .14s ease,background .2s ease}
+.option.correct,.family-choice.correct{background:#dff8e9;box-shadow:0 0 0 6px #4ec26b inset,0 10px 24px #4ec26b33;animation:pop .38s ease}
+.option.wrong,.family-choice.wrong{animation:shake .45s ease}
+.option.hint,.family-choice.hint{animation:hintpulse 1.2s ease-in-out infinite}
+.options.locked,.family-options.locked,.memory-grid.locked{pointer-events:none}
+@keyframes pop{0%{transform:scale(1)}45%{transform:scale(1.11)}100%{transform:scale(1)}}
+@keyframes shake{0%,100%{transform:translateX(0)}18%{transform:translateX(-11px)}38%{transform:translateX(10px)}58%{transform:translateX(-7px)}78%{transform:translateX(5px)}}
+@keyframes hintpulse{0%,100%{box-shadow:0 8px 20px #00000012}50%{box-shadow:0 0 0 7px #ffd25e,0 8px 20px #00000012}}
+
+/* Feedback line */
+.feedback{transition:color .2s ease}
+.feedback.good{color:#1c7a41}
+.feedback.soft{color:#95651a}
+
+/* Star dots in the score pill */
+.round-dots{display:inline-flex;gap:5px;margin-left:9px;vertical-align:middle}
+.round-dots i{width:10px;height:10px;border-radius:50%;background:#00000018;display:block;transition:background .25s ease,transform .25s ease}
+.round-dots i.on{background:#ffc107;transform:scale(1.22)}
+
+/* Celebration burst */
+.fx-burst{position:fixed;z-index:9999;pointer-events:none;width:0;height:0}
+.fx-burst i{position:absolute;font-style:normal;font-size:1.6rem;left:0;top:0;animation:fx-fly .95s cubic-bezier(.22,.7,.35,1) forwards}
+@keyframes fx-fly{0%{transform:translate(0,0) rotate(0);opacity:1}100%{transform:translate(var(--dx),var(--dy)) rotate(var(--r));opacity:0}}
+
+/* Feed the Monster */
+.fly-food{position:fixed;z-index:9998;pointer-events:none;font-size:3rem;animation:fly .42s ease-in forwards}
+@keyframes fly{0%{transform:translate(0,0) scale(1);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(.35);opacity:0}}
+.monster.chomp{animation:chomp .3s ease}
+@keyframes chomp{0%,100%{transform:scale(1)}50%{transform:scale(1.09)}}
+.monster.happy{animation:none}
+.count-dots span{transition:color .2s ease,transform .2s ease;display:inline-block}
+.count-dots .filled{color:#ef7d13;transform:scale(1.12)}
+
+/* Memory cards */
+.memory-card{transition:transform .18s ease,background .2s ease}
+.memory-card.open{transform:rotateY(0) scale(1.03)}
+.memory-card.matched{transform:scale(.97);opacity:.92}
+
+/* Well done screen */
+.welldone .shell,.welldone{justify-content:center}
+.celebrate-card{text-align:center;margin:auto 0}
+.celebrate-emoji{font-size:6rem;animation:bounce 1.4s ease-in-out infinite}
+.celebrate-card h1{font-size:clamp(2rem,6vw,3.4rem);margin:.2rem 0;color:#17305d}
+.celebrate-stars{font-size:2rem;letter-spacing:4px;margin:.6rem 0}
+.celebrate-card .primary.big{display:block;width:min(340px,100%);margin:18px auto 0}
+.celebrate-card .secondary.wide{width:min(340px,100%);margin:10px auto 0;display:block}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
+
+/* Grown-ups: game length chips */
+.chip-row{display:flex;gap:9px;flex-wrap:wrap;margin-top:10px}
+.chip{border:2px solid #dbe1e7;background:#fff;border-radius:999px;padding:11px 17px;font-weight:800}
+.chip.on{background:#ffd25e;border-color:#e9b429}
+
+/* Sound toggle off state */
+.home-control.is-off{background:#eceff2;color:#6b737c}
+
+/* Recording button */
+.adult-record.recording{background:#d73232;color:white;animation:pulse-record 1s infinite}
+
+/* Respect "reduce motion" */
+@media(prefers-reduced-motion:reduce){
+  *,*:before,*:after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
+}
+.pill.bump{animation:pop .4s ease}
+
+/* v4 pushed the speech bubble off the left edge on narrow phones (left:-2px at 390px wide). */
+@media(max-width:700px){
+  .speech-bubble{left:clamp(8px, calc(50% - 190px), 50%)}
+}
+
+/* Grandparent picture (upload your own instead of the stock cartoon) */
+label.spaced{margin-top:22px}
+.mascot-row{display:flex;gap:14px;align-items:center;margin-bottom:6px}
+.mascot-preview{flex:0 0 auto;width:84px;height:84px;border-radius:20px;overflow:hidden;background:#f4f7fb;display:block}
+.mascot-preview img{width:100%;height:100%;object-fit:cover;object-position:center top;display:block}
+.mascot-controls{flex:1;min-width:0;display:flex;flex-direction:column;gap:9px}
+.mascot-controls input[type=file]{font-size:.95rem;padding:10px 12px}
+.boepa-mascot.is-photo{object-position:center 20%;border-radius:32px 32px 0 0}
