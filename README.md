@@ -57,3 +57,10 @@ Family photos and progress are stored locally in the browser. Keep uploaded phot
 - Colour-coded game cards with level strips
 - My Progress card and quick controls
 - Existing v3 games, profiles, family photos, voice studio and progress data retained
+
+
+## Version 4.1 timing fix
+- Praise/congratulations now completes before the next question begins.
+- Speech is queued rather than one phrase interrupting another.
+- Slower speech rate improves pronunciation of children's names such as Jasmine.
+- Adds a short natural pause between praise and the next prompt.

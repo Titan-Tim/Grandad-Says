@@ -42,15 +42,51 @@ function ageBand(){
 function pick(arr,n){ return [...arr].sort(()=>Math.random()-.5).slice(0,n); }
 function shuffle(arr){ return [...arr].sort(()=>Math.random()-.5); }
 function esc(s=''){ return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
-function speak(text, rate=.84){
-  if (!('speechSynthesis' in window)) return;
-  speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text); u.rate=rate; u.pitch=1.04; speechSynthesis.speak(u);
+let speechQueue = Promise.resolve();
+function speak(text){
+  speechQueue = speechQueue.then(()=>new Promise(resolve=>{
+    if(!('speechSynthesis' in window)){ resolve(); return; }
+    const synth = window.speechSynthesis;
+    const u = new SpeechSynthesisUtterance(String(text));
+    u.rate = 0.82;
+    u.pitch = 1.04;
+    u.volume = 1;
+    const voices = synth.getVoices();
+    const preferred = voices.find(v=>/en-GB/i.test(v.lang)) || voices.find(v=>/^en/i.test(v.lang));
+    if(preferred) u.voice = preferred;
+    u.onend = ()=>setTimeout(resolve,220);
+    u.onerror = ()=>setTimeout(resolve,220);
+    synth.speak(u);
+  }));
+  return speechQueue;
 }
-function playClip(name, fallback){
-  const src = audioClips[name];
-  if (src) { const a = new Audio(src); a.play().catch(()=>fallback && speak(fallback)); }
-  else if (fallback) speak(fallback);
+function afterPraise(nextFn, delay=250){
+  speechQueue.then(()=>setTimeout(nextFn,delay));
+}
+
+function playClip(key,fallback){
+  speechQueue = speechQueue.then(()=>new Promise(resolve=>{
+    const src = audioClips[key];
+    if(src){
+      const a = new Audio(src);
+      a.onended=()=>setTimeout(resolve,250);
+      a.onerror=()=>{ speak(fallback); resolve(); };
+      a.play().catch(()=>{ speak(fallback); resolve(); });
+    }else{
+      if(!('speechSynthesis' in window)){ resolve(); return; }
+      const synth = window.speechSynthesis;
+      const u = new SpeechSynthesisUtterance(String(fallback));
+      u.rate = 0.82;
+      u.pitch = 1.04;
+      const voices=synth.getVoices();
+      const preferred=voices.find(v=>/en-GB/i.test(v.lang))||voices.find(v=>/^en/i.test(v.lang));
+      if(preferred)u.voice=preferred;
+      u.onend=()=>setTimeout(resolve,250);
+      u.onerror=()=>setTimeout(resolve,250);
+      synth.speak(u);
+    }
+  }));
+  return speechQueue;
 }
 function progressKey(game){ const p=activeProfile(); return p ? `${p.id}:${game}` : ''; }
 function addProgress(game, correct=1, attempts=1){
@@ -212,7 +248,7 @@ function renderAnimals(){
   bindHome(); document.getElementById('hear').onclick=()=>speak(c.target.sound,.72);
   document.querySelectorAll('.animal-option').forEach(btn=>btn.onclick=()=>{
     const chosen=c.options[Number(btn.dataset.i)];
-    if(chosen.name===c.target.name){ state.score++; addProgress('animals',1,1); state.feedback=`🎉 Yes! It's the ${c.target.name}!`; playClip('praise',`Well done, ${p.name}!`); renderAnimals(); setTimeout(newAnimalRound,900); }
+    if(chosen.name===c.target.name){ state.score++; addProgress('animals',1,1); state.feedback=`🎉 Yes! It's the ${c.target.name}!`; playClip('praise',`Well done, ${p.name}!`); renderAnimals(); afterPraise(newAnimalRound,350); }
     else { addProgress('animals',0,1); state.feedback='Listen again 👂'; playClip('tryAgain','Listen again.'); renderAnimals(); setTimeout(()=>speak(c.target.sound,.72),300); }
   });
 }
@@ -234,7 +270,7 @@ function renderMonster(){
   </div>`;
   bindHome(); document.getElementById('hear').onclick=()=>speak(`Feed the monster ${g.targetCount} ${g.food.name}${g.targetCount>1?'s':''}.`);
   const foodBtn=document.getElementById('food'); if(foodBtn) foodBtn.onclick=()=>{
-    if(g.done) return; g.fed++; if(g.fed===g.targetCount){g.done=true;state.score++;addProgress('monster',1,1);state.feedback=`🎉 Perfect counting, ${esc(p.name)}!`;playClip('praise',`Perfect counting, ${p.name}!`);renderMonster();setTimeout(newMonsterRound,1100);} else {renderMonster();}
+    if(g.done) return; g.fed++; if(g.fed===g.targetCount){g.done=true;state.score++;addProgress('monster',1,1);state.feedback=`🎉 Perfect counting, ${esc(p.name)}!`;playClip('praise',`Perfect counting, ${p.name}!`);renderMonster(); afterPraise(newMonsterRound,350);} else {renderMonster();}
   };
 }
 
@@ -333,7 +369,7 @@ function renderPhonics(){
  const g=state.game,p=activeProfile(); if(!g.target) return newPhonicsRound();
  app.innerHTML=`<div class="shell">${gameTop('Letters & Phonics')}<section class="challenge"><div class="prompt-icon">🔤</div><h2>Find the letter <strong>${g.target.letter}</strong></h2><p>${g.target.letter} is for ${g.target.emoji} ${g.target.word}</p><button class="secondary" id="hear">🔊 Hear it</button></section><section class="options">${g.options.map((o,i)=>`<button class="option letter-option" data-i="${i}">${o.letter}</button>`).join('')}</section><div class="feedback">${state.feedback}</div></div>`;
  bindHome(); document.getElementById('hear').onclick=()=>speak(`${g.target.letter}. ${g.target.letter} is for ${g.target.word}.`);
- document.querySelectorAll('.letter-option').forEach(b=>b.onclick=()=>{let o=g.options[+b.dataset.i]; if(o.letter===g.target.letter){state.score++;addProgress('phonics',1,1);state.feedback=`🎉 ${g.target.letter} is for ${g.target.word}!`;playClip('praise',`Brilliant, ${p.name}!`);renderPhonics();setTimeout(newPhonicsRound,1000)}else{addProgress('phonics',0,1);state.feedback='Good try — have another go 😊';renderPhonics();}})
+ document.querySelectorAll('.letter-option').forEach(b=>b.onclick=()=>{let o=g.options[+b.dataset.i]; if(o.letter===g.target.letter){state.score++;addProgress('phonics',1,1);state.feedback=`🎉 ${g.target.letter} is for ${g.target.word}!`;playClip('praise',`Brilliant, ${p.name}!`);renderPhonics();afterPraise(newPhonicsRound,350)}else{addProgress('phonics',0,1);state.feedback='Good try — have another go 😊';renderPhonics();}})
 }
 
 function newTracingRound(){ state.game={item:PHONICS[Math.floor(Math.random()*PHONICS.length)],strokes:0}; state.round++; state.feedback=''; renderTracing(); setTimeout(()=>speak(`Trace the letter ${state.game.item.letter} with your finger.`),200); }
@@ -345,7 +381,7 @@ function renderTracing(){
  function start(e){e.preventDefault();drawing=true;let p=pos(e);ctx.beginPath();ctx.moveTo(p.x,p.y)} function move(e){if(!drawing)return;e.preventDefault();let p=pos(e);ctx.lineTo(p.x,p.y);ctx.stroke();g.strokes++} function end(){drawing=false}
  canvas.addEventListener('pointerdown',start);canvas.addEventListener('pointermove',move);canvas.addEventListener('pointerup',end);canvas.addEventListener('pointerleave',end);
  document.getElementById('clearTrace').onclick=()=>{ctx.clearRect(0,0,canvas.width,canvas.height);g.strokes=0;state.feedback=''};
- document.getElementById('traceDone').onclick=()=>{if(g.strokes<4){state.feedback='Draw over the big letter first 😊';renderTracing();return}state.score++;addProgress('tracing',1,1);playClip('praise',`Lovely tracing, ${activeProfile().name}!`);state.feedback='🌟 Lovely tracing!';renderTracing();setTimeout(newTracingRound,1100)};
+ document.getElementById('traceDone').onclick=()=>{if(g.strokes<4){state.feedback='Draw over the big letter first 😊';renderTracing();return}state.score++;addProgress('tracing',1,1);playClip('praise',`Lovely tracing, ${activeProfile().name}!`);state.feedback='🌟 Lovely tracing!';renderTracing();afterPraise(newTracingRound,350)};
 }
 
 function saveFamily(){ localStorage.setItem(FAMILY_KEY,JSON.stringify(familyPeople)); }
@@ -359,7 +395,7 @@ function newFamilyRound(){
 }
 function renderFamily(){
  const g=state.game;if(g.needsSetup||familyPeople.length<2){app.innerHTML=`<div class="shell narrow">${gameTop('Our Family')}<section class="card gate"><div class="prompt-icon">👨‍👩‍👧‍👦</div><h2>Our Family needs two photos</h2><p>Ask a grown-up to add family members in the Grown-ups area first.</p></section></div>`;bindHome();return}
- if(!g.target)return newFamilyRound();app.innerHTML=`<div class="shell">${gameTop('Our Family')}<section class="challenge"><h2>Can you find ${esc(g.target.role||g.target.name)}?</h2><button class="secondary" id="hear">🔊 Say it again</button></section><section class="family-options">${g.options.map((x,i)=>`<button class="family-choice" data-i="${i}">${x.photo?`<img src="${x.photo}" alt="${esc(x.name)}">`:'<span class="big-person">👤</span>'}<b>${esc(x.name)}</b></button>`).join('')}</section><div class="feedback">${state.feedback}</div></div>`;bindHome();document.getElementById('hear').onclick=()=>speak(`Can you find ${g.target.role||g.target.name}?`);document.querySelectorAll('.family-choice').forEach(b=>b.onclick=()=>{let x=g.options[+b.dataset.i];if(x.name===g.target.name){state.score++;addProgress('family',1,1);state.feedback=`💛 That's ${esc(x.name)}!`;playClip('praise',`That's right, ${activeProfile().name}!`);renderFamily();setTimeout(newFamilyRound,1000)}else{addProgress('family',0,1);state.feedback='Nearly — try another face 😊';renderFamily()}})
+ if(!g.target)return newFamilyRound();app.innerHTML=`<div class="shell">${gameTop('Our Family')}<section class="challenge"><h2>Can you find ${esc(g.target.role||g.target.name)}?</h2><button class="secondary" id="hear">🔊 Say it again</button></section><section class="family-options">${g.options.map((x,i)=>`<button class="family-choice" data-i="${i}">${x.photo?`<img src="${x.photo}" alt="${esc(x.name)}">`:'<span class="big-person">👤</span>'}<b>${esc(x.name)}</b></button>`).join('')}</section><div class="feedback">${state.feedback}</div></div>`;bindHome();document.getElementById('hear').onclick=()=>speak(`Can you find ${g.target.role||g.target.name}?`);document.querySelectorAll('.family-choice').forEach(b=>b.onclick=()=>{let x=g.options[+b.dataset.i];if(x.name===g.target.name){state.score++;addProgress('family',1,1);state.feedback=`💛 That's ${esc(x.name)}!`;playClip('praise',`That's right, ${activeProfile().name}!`);renderFamily();afterPraise(newFamilyRound,350)}else{addProgress('family',0,1);state.feedback='Nearly — try another face 😊';renderFamily()}})
 }
 
 render();
