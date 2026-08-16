@@ -246,3 +246,6 @@ label.spaced{margin-top:22px}
 .voice-help{margin-top:12px;background:#f3f7fa;border-radius:16px;padding:12px 16px}
 .voice-help summary{font-weight:800;cursor:pointer}
 .voice-help p{font-size:.95rem;color:#4b5563;margin:10px 0 0}
+
+/* "trial" badge on the voice pack card */
+.badge-new{display:inline-block;vertical-align:middle;background:#6843af;color:#fff;font-size:.62rem;font-weight:900;letter-spacing:.06em;text-transform:uppercase;padding:4px 9px;border-radius:999px;margin-left:8px}

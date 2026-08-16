@@ -71,6 +71,29 @@ stylesheet had rules for them but the code was never written. All three are now 
   end-of-game message. Where more than one is recorded the app **picks a different one each time**,
   so a child doesn't hear the same clip forty times in a row. Recording auto-stops after 8 seconds.
 
+### Recorded voice pack (trial)
+Real recorded speech shipped with the app, so the prompts sound human and **identical on every device**
+— no API key, no network at runtime, works offline, no per-play cost.
+
+Trial scope: the colours and animals in *[Name] Says*, plus a well-done and a try-again line, in two
+voices (`voice/f/` female, `voice/m/` male). 28 clips, 396KB, none longer than 2.5 seconds. Generated,
+then silence-trimmed so a prompt starts the instant the round does.
+
+Order of preference for any prompt:
+1. a clip the grown-up recorded in the Voice studio
+2. the recorded voice pack
+3. the device's speech synthesis
+
+Anything the pack doesn't cover (shapes, numbers, letters, family names, counting) falls through to the
+computer voice automatically. Grown-ups → Recorded voice pack switches it on and off and picks the
+voice, so it can be compared against the computer voice by ear.
+
+The pack says "Can you find the red one?" rather than "*[Name]* says, can you find…", because the
+grandparent name is different on every device. The screen still shows "*[Name]* says…".
+
+To extend it to everything, the remaining phrases are the shapes, numbers 1–10, letters A–Z, the
+counting prompts and the family-relationship names — roughly 60 more per voice.
+
 ### Question voice: male or female, and getting rid of the robot
 Grown-ups → Question voice now offers **Female / Male / Either**, a list of every English voice on the
 device, and a Test button that speaks a real question so you can compare them. The choice is remembered.

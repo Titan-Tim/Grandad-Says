@@ -3,8 +3,14 @@
    old version for days after a deploy. This version takes over immediately and
    prefers the network for code, so a reload always picks up the latest build
    while still working fully offline. */
-const CACHE = 'grandads-play-learn-v5';
-const ASSETS = ['./','./index.html','./styles.css','./app.js','./manifest.webmanifest','./icon-192.png','./icon-512.png','./boepa-mascot.png'];
+const CACHE = 'grandads-play-learn-v5-2';
+const PACK = ['red','blue','green','yellow','purple','orange','dog','cat','cow','duck','pig','sheep','praise','tryagain'];
+const ASSETS = [
+  './','./index.html','./styles.css','./app.js','./manifest.webmanifest',
+  './icon-192.png','./icon-512.png','./boepa-mascot.png',
+  // recorded voice pack — precached so prompts still speak with no signal
+  ...PACK.flatMap(n => [`./voice/f/${n}.mp3`, `./voice/m/${n}.mp3`])
+];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));

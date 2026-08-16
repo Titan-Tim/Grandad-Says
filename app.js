@@ -12,7 +12,7 @@ const AUDIO_KEY  = 'gpl-audio-v1';
 const FAMILY_KEY = 'gpl-family-v1';
 const PREFS_KEY  = 'gpl-prefs-v1';
 const DEFAULT_DATA  = { grandName:'Boepa', grandPhoto:'', profiles:[], activeProfileId:null, progress:{} };
-const DEFAULT_PREFS = { soundOn:true, voiceURI:'', voiceGender:'female', roundTarget:5 };
+const DEFAULT_PREFS = { soundOn:true, voiceURI:'', voiceGender:'female', roundTarget:5, usePack:true, packVoice:'' };
 
 let data        = loadJSON(DB_KEY, DEFAULT_DATA);
 let prefs       = loadJSON(PREFS_KEY, DEFAULT_PREFS);
@@ -210,6 +210,40 @@ function afterSpeech(nextFn, delay=300){
   q.then(()=>{ if(Sound.queue === q) setTimeout(nextFn, delay); else afterSpeech(nextFn, delay); });
 }
 
+/* ------------------------------------------------------------- voice pack
+   Trial pack of real recorded speech, shipped with the app, for the colours
+   and animals in "[Name] Says". No network, no API key, and it sounds the
+   same on every device — unlike the built-in robot voices.
+   Order of preference for any prompt: grown-up's own recording > voice pack >
+   device speech synthesis. */
+const PACK_ITEMS = ['red','blue','green','yellow','purple','orange','dog','cat','cow','duck','pig','sheep'];
+const PACK_VOICES = {
+  f: {label:'Ainsley (female)', dir:'voice/f/'},
+  m: {label:'Arthur (male)',    dir:'voice/m/'}
+};
+function packDir(){
+  const v = PACK_VOICES[prefs.packVoice] || PACK_VOICES[prefs.voiceGender === 'male' ? 'm' : 'f'];
+  return v.dir;
+}
+function packHas(key){ return prefs.usePack !== false && (PACK_ITEMS.includes(key) || key === 'praise' || key === 'tryagain'); }
+/** Play a shipped clip, falling back to the device voice if it won't load. */
+function playPack(key, fallbackText){
+  return enqueue(()=>new Promise(resolve=>{
+    const a = new Audio(packDir() + key + '.mp3');
+    let done = false;
+    const finish = ()=>{ if(done) return; done = true; setTimeout(resolve, 160); };
+    a.onended = finish;
+    a.onerror = ()=>{ if(done) return; done = true; utter(fallbackText).then(resolve); };
+    a.play().catch(()=>{ if(done) return; done = true; utter(fallbackText).then(resolve); });
+  }));
+}
+/** Ask a question: recorded clip if there is one, else the pack, else speech. */
+function askPrompt(packKey, spokenText){
+  if(!prefs.soundOn) return Promise.resolve();
+  if(packKey && packHas(packKey)) return playPack(packKey, spokenText);
+  return speak(spokenText);
+}
+
 /* Recorded grown-up clips. `praise` also matches praise2/praise3 so the child
    hears a different "well done" each time instead of the same one 40 times. */
 function clipVariants(base){
@@ -218,7 +252,8 @@ function clipVariants(base){
 function playClip(base, fallbackText){
   if(!prefs.soundOn) return Promise.resolve();
   const keys = clipVariants(base);
-  if(!keys.length) return speak(fallbackText);
+  // Nothing recorded by the grown-up — try the shipped pack before the robot.
+  if(!keys.length) return packHas(base) ? playPack(base, fallbackText) : speak(fallbackText);
   const src = audioClips[randOf(keys)];
   return enqueue(()=>new Promise(resolve=>{
     const a = new Audio(src);
@@ -482,7 +517,11 @@ function newBoepaChallenge(){
   state.challenge = {options, target: randOf(options)};
   state.round++; state.wrong=0; state.feedback='';
   renderBoepa();
-  speak(`${data.grandName} says, can you find the ${state.challenge.target.name}?`);
+  askPrompt(state.challenge.target.name, boepaPromptText(state.challenge.target));
+}
+/** The pack says "Can you find the red one?"; the screen still says "Boepa says…". */
+function boepaPromptText(target){
+  return `${data.grandName} says, can you find the ${target.name}?`;
 }
 function renderBoepa(){
   const p = activeProfile(), c = state.challenge; if(!c) return newBoepaChallenge();
@@ -494,7 +533,10 @@ function renderBoepa(){
     <div class="feedback" aria-live="polite"></div><div class="round">Round ${state.round}</div>
   </div>`;
   bindHome();
-  $('#hear').onclick = ()=>{ sfx('tap'); sayNow(`${data.grandName} says, can you find the ${c.target.name}?`, .9); };
+  $('#hear').onclick = ()=>{
+    sfx('tap'); stopSpeech();
+    askPrompt(c.target.name, boepaPromptText(c.target));
+  };
   $$('.option').forEach(btn=>btn.onclick = ()=>{
     const chosen = c.options[Number(btn.dataset.i)];
     const correct = chosen.name === c.target.name;
@@ -887,8 +929,22 @@ function renderParent(){
           ${[5,10,0].map(n=>`<button class="chip ${prefs.roundTarget===n?'on':''}" data-rounds="${n}">${n===0?'Keep going':n+' stars'}</button>`).join('')}
         </div></div>
 
+      <div class="card"><h2>Recorded voice pack <span class="badge-new">trial</span></h2>
+        <p>Real recorded speech shipped with the app, instead of the computer voice. Currently covers the
+        colours and animals in <b>${esc(data.grandName)} Says</b>, plus well done and try again.</p>
+        <div class="chip-row">
+          <button class="chip ${prefs.usePack!==false?'on':''}" data-pack="on">Use the recorded pack</button>
+          <button class="chip ${prefs.usePack===false?'on':''}" data-pack="off">Use the computer voice</button>
+        </div>
+        <div class="chip-row" style="margin-top:10px">
+          ${Object.entries(PACK_VOICES).map(([k,v])=>
+            `<button class="chip ${(prefs.packVoice||(prefs.voiceGender==='male'?'m':'f'))===k?'on':''}" data-packvoice="${k}">${v.label}</button>`).join('')}
+        </div>
+        <button class="secondary wide" id="testPack">▶️ Hear the recorded voice</button>
+        <p class="muted">Anything you record yourself in the Voice studio is still used first.</p></div>
+
       <div class="card"><h2>Question voice</h2>
-        <p>The voice that asks the questions when you haven't recorded one yourself.</p>
+        <p>The computer voice, used for everything the recorded pack doesn't cover.</p>
 
         <div class="chip-row">
           ${[['female','👩 Female'],['male','👨 Male'],['','Either']].map(([g,label])=>
@@ -944,6 +1000,24 @@ function renderParent(){
   $('#saveGrand').onclick   = ()=>{ data.grandName = $('#grandNameEdit').value.trim() || 'Grandad'; saveData(); renderParent(); };
   $$('.chip[data-rounds]').forEach(b=>b.onclick = ()=>{ prefs.roundTarget = Number(b.dataset.rounds); savePrefs(); renderParent(); });
   const previewVoice = ()=>{ stopSpeech(); speak(`Hello ${p.name}. ${data.grandName} says, can you find the red circle?`); };
+  $$('.chip[data-pack]').forEach(b=>b.onclick = ()=>{
+    prefs.usePack = b.dataset.pack === 'on';
+    savePrefs(); renderParent();
+    stopSpeech();
+    askPrompt('red', `${data.grandName} says, can you find the red?`);
+  });
+  $$('.chip[data-packvoice]').forEach(b=>b.onclick = ()=>{
+    prefs.packVoice = b.dataset.packvoice;
+    prefs.usePack = true;
+    savePrefs(); renderParent();
+    stopSpeech();
+    askPrompt('red', `${data.grandName} says, can you find the red?`);
+  });
+  $('#testPack').onclick = ()=>{
+    stopSpeech();
+    askPrompt('dog', 'Can you find the dog?');
+    playClip('praise', 'Brilliant! Well done!');
+  };
   $$('.chip[data-gender]').forEach(b=>b.onclick = ()=>{
     prefs.voiceGender = b.dataset.gender;
     prefs.voiceURI = '';            // gender choice replaces any specific pick
