@@ -64,3 +64,19 @@ Family photos and progress are stored locally in the browser. Keep uploaded phot
 - Speech is queued rather than one phrase interrupting another.
 - Slower speech rate improves pronunciation of children's names such as Jasmine.
 - Adds a short natural pause between praise and the next prompt.
+
+
+## Version 4.2 voice improvement
+- Prefers natural-sounding female English system voices when available
+- Slightly warmer pitch and more natural speaking speed
+- Adds a Grown-ups “Question voice” selector
+- Includes a Test Voice button
+- Remembers the chosen voice on the device
+
+
+## Version 4.3 Adult Voice Pack
+- Adds a Grown-ups Adult Voice Pack studio
+- Adults can record common prompts and encouragement in their own voice
+- Recordings remain on the device in browser storage
+- App falls back to the selected female system voice when a prompt has not been recorded
+- Includes playback and delete controls for every recording
