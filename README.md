@@ -46,3 +46,14 @@ For microphone recording and reliable Home Screen/PWA behaviour, host the projec
 - Progress tracking for all three new learning areas
 
 Family photos and progress are stored locally in the browser. Keep uploaded photos reasonably small because browser local storage is limited.
+
+
+## Version 4 visual refresh
+- Completely redesigned illustrated-style home dashboard
+- Large responsive child greeting: “Brilliant, [name]!”
+- Longer names wrap instead of being clipped
+- Boepa mascot area and speech bubble
+- 4-column iPad layout, responsive to phones/tablets
+- Colour-coded game cards with level strips
+- My Progress card and quick controls
+- Existing v3 games, profiles, family photos, voice studio and progress data retained

@@ -108,26 +108,69 @@ function renderSetup(){
 
 function renderHome(){
   const p=activeProfile(); if(!p){state.screen='setup';return render();}
-  app.innerHTML=`<div class="shell">
-    <div class="topbar">
-      <button class="profile-pill" id="profiles"><span>${p.avatar}</span><span><small>Playing as</small>${esc(p.name)}</span><b>⌄</b></button>
-      <button class="parent-btn" id="parent">⚙️ Grown-ups</button>
+  const totalCorrect = Object.values(p.progress||{}).reduce((sum,x)=>sum+(x.correct||0),0);
+  app.innerHTML=`<div class="shell home-shell">
+    <div class="home-topbar">
+      <button class="parent-btn grownup-pill" id="parent">⚙️ <span>Grown-ups</span></button>
+      <button class="profile-pill profile-pill-large" id="profiles"><span>${p.avatar}</span><span><small>Playing as</small>${esc(p.name)}</span><b>⌄</b></button>
     </div>
-    <section class="hero"><div class="sun">☀️</div><h2>Play & Learn with ${esc(data.grandName)}</h2><p>What shall we play, ${esc(p.name)}?</p></section>
-    <section class="home-grid">
-      ${gameTile('boepa','🎯',`${esc(data.grandName)} Says`,'Colours, shapes, animals & numbers','peach')}
-      ${gameTile('animals','🐮','Animal Sounds','Listen carefully and find the animal','mint')}
-      ${gameTile('monster','👾','Feed the Monster','Counting with a very hungry friend','lilac')}
-      ${gameTile('memory','🧠','Match & Remember','Turn the cards and find the pairs','sky')}
-      ${gameTile('family','👨‍👩‍👧‍👦','Our Family','Learn familiar faces and names','mint')}
-      ${gameTile('phonics','🔤','Letters & Phonics','Letters, sounds and first words','peach')}
-      ${gameTile('tracing','✏️','Tracing','Trace letters with your finger','lilac')}
+
+    <section class="hero-v4">
+      <div class="hero-copy">
+        <div class="sunny">☀️</div>
+        <h1><span>Brilliant,</span><strong>${esc(p.name)}!</strong></h1>
+        <h2>Play & Learn with <b>${esc(data.grandName)}</b></h2>
+        <p>What shall we play today?</p>
+      </div>
+      <div class="boepa-area">
+        <div class="speech-bubble">Hi ${esc(p.name)}!<br><b>I'm ${esc(data.grandName)}</b></div>
+        <img src="boepa-mascot.png" alt="${esc(data.grandName)} waving" class="boepa-mascot">
+      </div>
     </section>
+
+    <section class="home-grid home-grid-v4">
+      ${gameTile('boepa','🎯',`${esc(data.grandName)} Says`,'Colours, shapes, animals & numbers','purple')}
+      ${gameTile('animals','🐶','Animal Sounds','Listen and find the animal','blue')}
+      ${gameTile('monster','👾','Feed the Monster','Count and feed your monster','green')}
+      ${gameTile('memory','🧠','Match & Remember','Find the matching pairs','orange')}
+      ${gameTile('family','👨‍👩‍👧‍👦','Our Family','Learn about our family','pink')}
+      ${gameTile('phonics','🔤','Letters & Phonics','Learn letters, sounds & first words','teal')}
+      ${gameTile('tracing','✏️','Tracing','Trace letters with your finger','violet')}
+      <button class="game-tile progress-tile yellow" id="progress-home">
+        <span class="emoji">⭐</span>
+        <span>My Progress</span>
+        <small>Keep going — you're doing great!</small>
+        <div class="mini-bars"><i></i><i></i><i></i><i></i><i></i></div>
+        <em>${totalCorrect} stars earned</em>
+      </button>
+    </section>
+
+    <section class="home-controls">
+      <button class="home-control" id="sound-home">🔊 <span>Sound is ON</span></button>
+      <button class="home-control" id="voice-home">🎤 <span>${esc(data.grandName)} Voice Studio</span></button>
+      <button class="home-control" id="progress-bottom">🏆 <span>My Progress</span></button>
+    </section>
+
     <footer class="tiny-footer">No adverts • No outside links • Progress stays on this device</footer>
   </div>`;
   document.getElementById('profiles').onclick=()=>{state.screen='profiles';render();};
   document.getElementById('parent').onclick=()=>openParentGate();
   ['boepa','animals','monster','memory','family','phonics','tracing'].forEach(g=>document.getElementById(`game-${g}`).onclick=()=>startGame(g));
+  const openProgress=()=>{state.screen='parent';render();};
+  document.getElementById('progress-home').onclick=openProgress;
+  document.getElementById('progress-bottom').onclick=openProgress;
+  document.getElementById('voice-home').onclick=()=>{state.screen='voice';render();};
+  document.getElementById('sound-home').onclick=()=>speak(`Hello ${p.name}. Sound is working.`);
+}
+function gameTile(id,emoji,title,sub,cls){ 
+  const st=gameStats(id); 
+  const stars=Math.max(1,Math.min(6,Math.ceil((st.correct||0)/3)||1));
+  return `<button class="game-tile ${cls}" id="game-${id}">
+    <span class="emoji">${emoji}</span>
+    <span>${title}</span>
+    <small>${sub}</small>
+    <em>★ Level ${stars}</em>
+  </button>`; 
 }
 function gameTile(id,emoji,title,sub,cls){ const st=gameStats(id); return `<button class="game-tile ${cls}" id="game-${id}"><span class="emoji">${emoji}</span><span>${title}</span><small>${sub}</small>${st.plays?`<em>Played ${st.plays}×</em>`:''}</button>`; }
 function startGame(g){ speechSynthesis?.cancel?.(); state.score=0; state.round=0; state.feedback=''; state.game={}; startPlay(g); state.screen=g; if(g==='boepa') newBoepaChallenge(); else if(g==='animals') newAnimalRound(); else if(g==='monster') newMonsterRound(); else if(g==='memory') newMemoryGame(); else if(g==='family') newFamilyRound(); else if(g==='phonics') newPhonicsRound(); else if(g==='tracing') newTracingRound(); }
